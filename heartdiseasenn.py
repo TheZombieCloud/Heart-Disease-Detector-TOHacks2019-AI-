@@ -12,14 +12,12 @@ warnings.filterwarnings("ignore", category=RuntimeWarning)
 
 def getData(data_set_x):
     pre_data_set_y = data_set_x[:,-1]
-    data_set_y = np.zeros((pre_data_set_y.shape[0], 3))
+    data_set_y = np.zeros((pre_data_set_y.shape[0], 1))
     for i in range(len(pre_data_set_y)):
         if pre_data_set_y[i] == 0:
-            data_set_y[i] = np.array([1, 0, 0])
-        elif pre_data_set_y[i] == 1:
-            data_set_y[i] = np.array([0, 1, 0])
+            data_set_y[i] = np.array([0])
         else:
-            data_set_y[i] = np.array([0, 0, 1])
+            data_set_y[i] = np.array([1])
     data_set_x = data_set_x[:,2:-1]
     medians = np.zeros(data_set_x[0].shape)
     
@@ -33,7 +31,7 @@ def getData(data_set_x):
         data_set_x[i][j] = medians[j]
         
     data_set_x = data_set_x.T
-    data_set_y = data_set_y.T[2:3]
+    data_set_y = data_set_y.T
     return data_set_x, data_set_y
 
 def sigmoid(z):
@@ -70,10 +68,6 @@ def initialize_with_zeros(dim):
     
     w = np.zeros((dim, 1))
     b = 0
-    
-
-    assert(w.shape == (dim, 1))
-    assert(isinstance(b, float) or isinstance(b, int))
     
     return w, b
 
@@ -264,17 +258,14 @@ def model(X_train, Y_train, X_train2, Y_train2, X_train3, Y_train3, X_test, Y_te
     
     # Predict test/train set examples 
     Y_prediction_test = predict(w, b, X_test)
-    Y_prediction_train = predict(w, b, X_train)
 
     
 
     # Print train/test Errors
-    print("train accuracy: {} %".format(100 - np.mean(np.abs(Y_prediction_train - Y_train)) * 100))
     print("test accuracy: {} %".format(100 - np.mean(np.abs(Y_prediction_test - Y_test)) * 100))
     
     d = {"costs": costs,
          "Y_prediction_test": Y_prediction_test, 
-         "Y_prediction_train" : Y_prediction_train, 
          "w" : w, 
          "b" : b,
          "learning_rate" : learning_rate,
@@ -306,4 +297,5 @@ for j in p:
     train_set_x2 = np.genfromtxt("processed.va.data.csv", delimiter=',')
     train_set_x3 = np.genfromtxt("processed.cleveland.data.csv", delimiter=',')
     test_set_x = np.genfromtxt(j, delimiter=',')
+    print("Testing " + " ".join(j.split(".")[1:-1])+": ", end = "")
     d = model(*getData(train_set_x), *getData(train_set_x2), *getData(train_set_x3), *getData(test_set_x), num_iterations = 400000, learning_rate = 0.05, print_cost = False)

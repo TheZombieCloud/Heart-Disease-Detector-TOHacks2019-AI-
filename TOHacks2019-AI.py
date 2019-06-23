@@ -14,25 +14,29 @@ get_ipython().run_line_magic('matplotlib', 'inline')
 
 
 # Loading the data (cat/non-cat)
-train_set_x_orig, train_set_y, test_set_x_orig, test_set_y, classes = np.empty((100, 64,64,1)),np.empty((100, 64,64,1)),np.empty((100, 64,64,1)),np.empty((100, 64,64,1)),[]
-from numpy import genfromtxt
-train_set_x_orig = genfromtxt("processed.cleveland.data.csv", delimiter=',')
-print(train_set_x_orig)
+train_set_x, train_set_y, test_set_x_orig, test_set_y, classes = np.empty((100, 64,64,1)),np.empty((100, 64,64,1)),np.empty((100, 64,64,1)),np.empty((100, 64,64,1)),[]
+train_set_x = np.genfromtxt("processed.cleveland.data.csv", delimiter=',')
+pre_train_set_y = train_set_x[:,-1]
+train_set_y = np.zeros((pre_train_set_y.shape[0], 3))
+for i in range(len(pre_train_set_y)):
+    if pre_train_set_y[i] == 0:
+        train_set_y[i] = np.array([1, 0, 0])
+    elif pre_train_set_y[i] == 1:
+        train_set_y[i] = np.array([0, 1, 0])
+    else:
+        train_set_y[i] = np.array([0, 0, 1])
+train_set_x = train_set_x[:,:-1]
+medians = np.zeros(train_set_x[0].shape)
 
+for i in train_set_x:
+    for j in range(len(i)):
+        if not np.isnan(i[j]):
+            medians[j] += i[j]
+medians /= train_set_x.shape[0]
+for i in range(len(train_set_x)):
+    j = np.isnan(train_set_x[i])
+    train_set_x[i][j] = medians[j]
 
-m_train = train_set_x_orig.shape[0]
-m_test = test_set_x_orig.shape[0]
-num_px = test_set_x_orig.shape[1]
-
-
-
-train_set_x_flatten = train_set_x_orig.reshape(train_set_x_orig.shape[0], -1).T
-test_set_x_flatten = test_set_x_orig.reshape(test_set_x_orig.shape[0], -1).T
-
-
-
-train_set_x = train_set_x_flatten/255.
-test_set_x = test_set_x_flatten/255.
 
 
 # GRADED FUNCTION: sigmoid
@@ -55,9 +59,66 @@ def sigmoid(z):
     return s
 
 
-# In[17]:
+def createWeights(dim):
+    w = np.zeros((3, dim))
+    b = np.zeros((3,))
+    assert(w.shape == (3, dim))
+    return w, b
 
+def prop3(w, b, X, Y):
+    m = X.shape[0]
+    A = sigmoid(np.dot(X, w.T) + b)
+    dw = np.dot(X.T, (A - Y)).T / m
+    db = np.sum((A - Y).T, axis=1).T[0]
+    
+    
+    
+    grads = {"dw": dw,
+             "db": db}
+    
+    return grads, (A-Y)
 
+def opt3(w, b, X, Y, num_iterations, learning_rate, print_cost = False):
+    
+    for i in range(num_iterations):
+        
+        
+        # Cost and gradient calculation (≈ 1-4 lines of code)
+        ### START CODE HERE ### 
+        grads, cost = prop3(w, b, X, Y)
+        ### END CODE HERE ###
+        
+        # Retrieve derivatives from grads
+        dw = grads["dw"]
+        db = grads["db"]
+        #if i % 100 == 0:
+            #print(w)
+        b = b - learning_rate * db
+        ### END CODE HERE ###
+        
+        # Record the costs
+        #if i % 100 == 0:
+            #costs.append(cost)
+        # update rule (≈ 2 lines of code)
+        ### START CODE HERE ###
+        w = w - learning_rate * dw
+        b = b - learning_rate * db
+        ### END CODE HERE ###
+    
+    params = {"w": w,
+              "b": b}
+    
+    grads = {"dw": dw,
+             "db": db}
+    
+    return params, grads
+    
+
+def pred3(w, b, X):
+    A = sigmoid(np.dot(X, w.T) + b)
+    return A
+
+'''
 def initialize_with_zeros(dim):
     """
     This function creates a vector of zeros of shape (dim, 1) for w and initializes b to 0.
@@ -71,7 +132,7 @@ def initialize_with_zeros(dim):
     """
     
     ### START CODE HERE ### (≈ 1 line of code)
-    w = np.zeros([dim, 1])
+    w = np.ones((dim, 1))
     b = 0
     ### END CODE HERE ###
 
@@ -104,9 +165,17 @@ def propagate(w, b, X, Y):
     """
     
     m = X.shape[1]
+    print(w.shape)
     # FORWARD PROPAGATION (FROM X TO COST)
     ### START CODE HERE ### (≈ 2 lines of code)
-    A = sigmoid(np.dot(w.T,X) + b)                                    # compute activation
+    A = np.zeros((1, X.shape[1]))
+    for i in range(len(X)):
+        A[i] = sigmoid(w.T * X[i] + b)                             # compute activation
+    print(w)
+    print(w.shape)
+    if np.isnan(-(np.sum(Y* np.log(A))+np.sum((1 - Y)* np.log(1 - A))) / m):
+        print (-(np.sum(Y* np.log(A))))
+        print (np.sum((1 - Y)* np.log(1 - A)))
     cost = -(np.sum(Y* np.log(A))+np.sum((1 - Y)* np.log(1 - A))) / m                              # compute cost
     ### END CODE HERE ###
     
@@ -171,16 +240,14 @@ def optimize(w, b, X, Y, num_iterations, learning_rate, print_cost = False):
         # update rule (≈ 2 lines of code)
         ### START CODE HERE ###
         w = w - learning_rate * dw
+        if i % 100 == 0:
+            print("h")
         b = b - learning_rate * db
         ### END CODE HERE ###
         
         # Record the costs
-        if i % 100 == 0:
-            costs.append(cost)
-        
-        # Print the cost every 100 training iterations
-        if print_cost and i % 100 == 0:
-            print ("Cost after iteration %i: %f" %(i, cost))
+        #if i % 100 == 0:
+            #costs.append(cost)
     
     params = {"w": w,
               "b": b}
@@ -195,7 +262,7 @@ def optimize(w, b, X, Y, num_iterations, learning_rate, print_cost = False):
 
 
 def predict(w, b, X):
-    '''
+    """
     Predict whether the label is 0 or 1 using learned logistic regression parameters (w, b)
     
     Arguments:
@@ -205,7 +272,7 @@ def predict(w, b, X):
     
     Returns:
     Y_prediction -- a numpy array (vector) containing all predictions (0/1) for the examples in X
-    '''
+    """
     
     m = X.shape[1]
     Y_prediction = np.zeros((1,m))
@@ -230,9 +297,67 @@ def predict(w, b, X):
     
     return Y_prediction
 
+# GRADED FUNCTION: model
 
-# In[ ]:
+def model(X_train, Y_train, X_test, Y_test, num_iterations = 2000, learning_rate = 0.5, print_cost = False):
+    """
+    Builds the logistic regression model by calling the function you've implemented previously
+    
+    Arguments:
+    X_train -- training set represented by a numpy array of shape (num_px * num_px * 3, m_train)
+    Y_train -- training labels represented by a numpy array (vector) of shape (1, m_train)
+    X_test -- test set represented by a numpy array of shape (num_px * num_px * 3, m_test)
+    Y_test -- test labels represented by a numpy array (vector) of shape (1, m_test)
+    num_iterations -- hyperparameter representing the number of iterations to optimize the parameters
+    learning_rate -- hyperparameter representing the learning rate used in the update rule of optimize()
+    print_cost -- Set to true to print the cost every 100 iterations
+    
+    Returns:
+    d -- dictionary containing information about the model.
+    """
+    
+    ### START CODE HERE ###
+    
+    # initialize parameters with zeros (≈ 1 line of code)
+    w, b = np.zeros(X_train.shape[0]), np.zeros(X_train.shape[1])
 
+    # Gradient descent (≈ 1 line of code)
+    parameters, grads, costs = optimize(w, b, X_train, Y_train, num_iterations, learning_rate, print_cost)
+    
+    # Retrieve parameters w and b from dictionary "parameters"
+    w = parameters["w"]
+    b = parameters["b"]
+    
+    # Predict test/train set examples (≈ 2 lines of code)
+    Y_prediction_test = predict(w, b, X_test)
+    Y_prediction_train = predict(w, b, X_train)
 
+    ### END CODE HERE ###
 
+    # Print train/test Errors
+    print("train accuracy: {} %".format(100 - np.mean(np.abs(Y_prediction_train - Y_train)) * 100))
+    print("test accuracy: {} %".format(100 - np.mean(np.abs(Y_prediction_test - Y_test)) * 100))
 
+    
+    d = {"costs": costs,
+         "Y_prediction_test": Y_prediction_test, 
+         "Y_prediction_train" : Y_prediction_train, 
+         "w" : w, 
+         "b" : b,
+         "learning_rate" : learning_rate,
+         "num_iterations": num_iterations}
+    
+    return d
+'''
+print(prop3(*createWeights(np.array([[1, 2], [1, 2], [1, 2]]).shape[1]), np.array([[1, 2], [1, 2], [1, 2]]), np.array([[1,0,0], [1,0,0], [1,0,0]])))
+parameters, grads = opt3(*createWeights(train_set_x.shape[1]), train_set_x, train_set_y, 2000, 0.5)
+w = parameters["w"]
+b = parameters["b"]
+Y_prediction_train = pred3(w, b, train_set_x)
+#print(Y_prediction_train)
+count = 0
+for i in range(len(Y_prediction_train)):
+    if (Y_prediction_train[i][2] == 1):
+        count+= 1
+        #print(train_set_y[i])
+print(count)
