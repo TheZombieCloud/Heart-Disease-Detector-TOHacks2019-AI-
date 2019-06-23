@@ -11,6 +11,18 @@ import warnings
 warnings.filterwarnings("ignore", category=RuntimeWarning) 
 
 def getData(data_set_x):
+    '''
+    Clease dataset and split into inputs and outputs
+    
+    Arguments:
+    data_set_x -- A numpy array of size (number of examples, 14)
+    
+    Returns:
+    data_set_x -- Input data array of size (number of examples, 11)
+    data_set_y -- Output data array of size (number of examples, 1)
+    '''
+    
+    # Set up output numpy array
     pre_data_set_y = data_set_x[:,-1]
     data_set_y = np.zeros((pre_data_set_y.shape[0], 1))
     for i in range(len(pre_data_set_y)):
@@ -19,16 +31,17 @@ def getData(data_set_x):
         else:
             data_set_y[i] = np.array([1])
     data_set_x = data_set_x[:,2:-1]
-    medians = np.zeros(data_set_x[0].shape)
     
+    # Calculate means
+    mean = np.zeros(data_set_x[0].shape)
     for i in data_set_x:
         for j in range(len(i)):
             if not np.isnan(i[j]):
-                medians[j] += i[j]
-    medians /= data_set_x.shape[0]
+                mean[j] += i[j]
+    mean /= data_set_x.shape[0]
     for i in range(len(data_set_x)):
         j = np.isnan(data_set_x[i])
-        data_set_x[i][j] = medians[j]
+        data_set_x[i][j] = mean[j]
         
     data_set_x = data_set_x.T
     data_set_y = data_set_y.T
@@ -78,10 +91,10 @@ def propagate(w, b, X, Y):
     Implement the cost function and its gradient for the propagation explained above
 
     Arguments:
-    w -- weights, a numpy array of size (num_px * num_px * 3, 1)
+    w -- weights, a numpy array of size (11, 1)
     b -- bias, a scalar
-    X -- data of size (num_px * num_px * 3, number of examples)
-    Y -- true "label" vector (containing 0 if non-cat, 1 if cat) of size (1, number of examples)
+    X -- data of size (11, number of examples)
+    Y -- true "label" vector (containing 0 if not diagnosed, 1 if diagnosed) of size (1, number of examples)
 
     Return:
     cost -- negative log-likelihood cost for logistic regression
@@ -89,7 +102,6 @@ def propagate(w, b, X, Y):
     db -- gradient of the loss with respect to b, thus same shape as b
 
     """
-    
     m = X.shape[1]
     
     # FORWARD PROPAGATION (FROM X TO COST)
@@ -121,10 +133,10 @@ def optimize(w, b, X, Y, num_iterations, learning_rate, print_cost = True):
     This function optimizes w and b by running a gradient descent algorithm
     
     Arguments:
-    w -- weights, a numpy array of size (num_px * num_px * 3, 1)
+    w -- weights, a numpy array of size (11, 1)
     b -- bias, a scalar
-    X -- data of shape (num_px * num_px * 3, number of examples)
-    Y -- true "label" vector (containing 0 if non-cat, 1 if cat), of shape (1, number of examples)
+    X -- data of shape (11, number of examples)
+    Y -- true "label" vector (containing 0 if not diagnosed, 1 if diagnosed), of shape (1, number of examples)
     num_iterations -- number of iterations of the optimization loop
     learning_rate -- learning rate of the gradient descent update rule
     print_cost -- True to print the loss every 100 steps
@@ -179,9 +191,9 @@ def predict(w, b, X):
     Predict whether the label is 0 or 1 using learned logistic regression parameters (w, b)
     
     Arguments:
-    w -- weights, a numpy array of size (num_px * num_px * 3, 1)
+    w -- weights, a numpy array of size (11, 1)
     b -- bias, a scalar
-    X -- data of size (num_px * num_px * 3, number of examples)
+    X -- data of size (11, number of examples)
     
     Returns:
     Y_prediction -- a numpy array (vector) containing all predictions (0/1) for the examples in X
@@ -209,18 +221,18 @@ def predict(w, b, X):
 
 
 
-def model(X_train, Y_train, X_train2, Y_train2, X_train3, Y_train3, X_test, Y_test, num_iterations = 2000, learning_rate = 0.5, print_cost = True):
+def model(X_train, Y_train, X_train2, Y_train2, X_train3, Y_train3, X_test, Y_test, num_iterations = 2000, learning_rate = 0.5, print_cost = False):
     """
     Builds the logistic regression model by calling the function you've implemented previously
     
     Arguments:
-    X_train -- training set represented by a numpy array of shape (num_px * num_px * 3, m_train)
+    X_train -- training set represented by a numpy array of shape (11, m_train)
     Y_train -- training labels represented by a numpy array (vector) of shape (1, m_train)
-    X_train2 -- training set 2 represented by a numpy array of shape (num_px * num_px * 3, m_train)
+    X_train2 -- training set 2 represented by a numpy array of shape (11, m_train)
     Y_train2 -- training labels 2 represented by a numpy array (vector) of shape (1, m_train)
-    X_train3 -- training set 3 represented by a numpy array of shape (num_px * num_px * 3, m_train)
+    X_train3 -- training set 3 represented by a numpy array of shape (11, m_train)
     Y_train3 -- training labels 3 represented by a numpy array (vector) of shape (1, m_train)
-    X_test -- test set represented by a numpy array of shape (num_px * num_px * 3, m_test)
+    X_test -- test set represented by a numpy array of shape (11, m_test)
     Y_test -- test labels represented by a numpy array (vector) of shape (1, m_test)
     num_iterations -- hyperparameter representing the number of iterations to optimize the parameters
     learning_rate -- hyperparameter representing the learning rate used in the update rule of optimize()
@@ -274,7 +286,6 @@ def model(X_train, Y_train, X_train2, Y_train2, X_train3, Y_train3, X_test, Y_te
     
     return d
 
-p = ["processed.hungarian.data.csv", "processed.va.data.csv", "processed.cleveland.data.csv", "processed.switzerland.data.csv"]
 
 '''
 totalAccs = []
@@ -292,10 +303,13 @@ for i in p:
 print(totalAccs)
 [171.30568300732511, 222.0034596789694, 215.11888169902105, 228.84717451336968]
 '''
+
+# Main
+p = ["processed.hungarian.data.csv", "processed.va.data.csv", "processed.cleveland.data.csv", "processed.switzerland.data.csv"]
 for j in p:
     train_set_x = np.genfromtxt("processed.switzerland.data.csv", delimiter=',')
     train_set_x2 = np.genfromtxt("processed.va.data.csv", delimiter=',')
     train_set_x3 = np.genfromtxt("processed.cleveland.data.csv", delimiter=',')
     test_set_x = np.genfromtxt(j, delimiter=',')
     print("Testing " + " ".join(j.split(".")[1:-1])+": ", end = "")
-    d = model(*getData(train_set_x), *getData(train_set_x2), *getData(train_set_x3), *getData(test_set_x), num_iterations = 400000, learning_rate = 0.05, print_cost = False)
+    d = model(*getData(train_set_x), *getData(train_set_x2), *getData(train_set_x3), *getData(test_set_x), num_iterations = 40000)
