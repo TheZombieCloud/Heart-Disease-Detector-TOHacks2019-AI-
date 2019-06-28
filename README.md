@@ -1,6 +1,6 @@
-# Heart Disease Analysis
+# Heart Disease Detector
 
-## Predicting if someone is at risk of heart disease
+## Predicts if someone is at risk of heart disease
 
 **How to run Neural Network Version**
 1. Clone the repository and navigate to that folder
